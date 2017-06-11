@@ -3,7 +3,7 @@ from robobrowser import RoboBrowser
 from urllib.parse import unquote
 import os
 import argparse
-import zipfile
+from zipfile import ZipFile
 
 def find_download_page(podcast, episode):
     download_base = 'https://www.trancepodcasts.com/download/'
@@ -44,7 +44,6 @@ def download(url, path):
     with open(filepath, "wb") as zip_file:
         zip_file.write(request.content)
 
-    print('File saved to: {:s}'.format(filepath))
     return filepath
 
 
@@ -53,8 +52,15 @@ def main(args):
     path = args.path if args.path != None else os.getcwd()
 
     for url in get_downloadable_urls(episodes):
+        # TODO check if directory exists
         filepath = download(url, path)
-
+        folder = filepath.replace('.zip', '')
+        if (args.unzip):
+            with ZipFile(filepath, 'r') as zip:
+                print('Extracting...')
+                zip.extractall(folder)
+                print('Extracted to: {:s}'.format(folder))
+            os.remove(filepath)
 
     print('Done')
 
@@ -63,6 +69,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser("Download trancepodcasts.co.uk")
     parser.add_argument('episodes', metavar='EPISODE', help="Episode number or %%-%% if multiple")
     parser.add_argument('-p', '--path', required=False, help="File save path")
-    parser.add_argument("-z", "--unzip", help="Unzip downloaded archives")
+    parser.add_argument("-z", "--unzip", action='store_true', help="Unzip downloaded archives")
     args = parser.parse_args()
     main(args)
