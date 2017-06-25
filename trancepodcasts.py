@@ -1,8 +1,10 @@
-import re
+#!/usr/bin/env python3
+
 from robobrowser import RoboBrowser
 from urllib.parse import unquote
 import os
 import argparse
+import subprocess
 from zipfile import ZipFile
 
 def find_download_page(podcast, episode):
@@ -47,6 +49,17 @@ def download(url, path):
     return filepath
 
 
+def mp3val(folder):
+    for file in os.listdir(folder):
+        if file.endswith(".mp3"):
+            mp3file = os.path.join(folder, file)
+            command = 'mp3val -f -t "{:s}"'.format(mp3file)
+            try:
+                subprocess.call(command, shell=True)
+            except FileNotFoundError:
+                print('mp3val command not found')
+
+
 def main(args):
     episodes = args.episodes.split('-')
     path = args.path if args.path != None else os.getcwd()
@@ -55,20 +68,22 @@ def main(args):
         # TODO check if directory exists
         filepath = download(url, path)
         folder = filepath.replace('.zip', '')
-        if (args.unzip):
+        if (args.nozip):
             with ZipFile(filepath, 'r') as zip:
                 print('Extracting...')
                 zip.extractall(folder)
                 print('Extracted to: {:s}'.format(folder))
             os.remove(filepath)
 
-    print('Done')
+            if (args.mp3fix):
+                mp3val(folder)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Download trancepodcasts.co.uk")
     parser.add_argument('episodes', metavar='EPISODE', help="Episode number or %%-%% if multiple")
     parser.add_argument('-p', '--path', required=False, help="File save path")
-    parser.add_argument("-z", "--unzip", action='store_true', help="Unzip downloaded archives")
+    parser.add_argument("-z", "--nozip", action='store_false', help="Do not unzip downloaded archives")
+    parser.add_argument("-m", "--mp3fix", action='store_true', help="Try and fix file with mp3val")
     args = parser.parse_args()
     main(args)
